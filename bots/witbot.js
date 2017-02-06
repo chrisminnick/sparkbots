@@ -1,49 +1,33 @@
-'use strict';
+// sparkwit-bot
+// created by Chris Minnick
 
-var SparkBot = require("node-sparkbot");
-var SparkAPIWrapper = require("node-sparkclient");
-let Wit = null;
-let log = null;
-try {
-    // if running from repo
-    Wit = require('../').Wit;
-    log = require('../').log;
-} catch (e) {
-    Wit = require('node-wit').Wit;
-    log = require('node-wit').log;
+// a Cisco Spark bot that integrates with wit.ai to understand natural language
+// messages in Spark conversations
+
+// To run with sample wit account and spark bot :
+// SPARK_TOKEN=ZTgzM2IyYTktNDAzOS00NzgzLTk1M2YtOWI5MThhZWIzMTk0ZDcxOWZmODEtM2I4 WIT_TOKEN=ZEX5YTS4WODTRAPXTB5P72GQSTFVKGTQ DEBUG=sparkbot* node witbot.js
+
+const SparkBot = require("node-sparkbot");
+const SparkAPIWrapper = require("node-sparkclient");
+const Wit = require('node-wit').Wit;
+const log = require('node-wit').log;
+const firstEntityValue = require('./utils/firstEntityValue.js');
+const findOrCreateSession = require('./utils/findOrCreateSession.js');
+const actions = require('./actions/index.js');
+
+
+if ((!process.env.SPARK_TOKEN)||(!process.env.SPARK_TOKEN)){
+    console.log("Could not start as this bot requires a Cisco Spark API access token ");
+    console.log("and a wit API access token ");
+    console.log("Please add env variables SPARK_TOKEN and WIT_TOKEN on the command line");
+    console.log("Example: ");
+    console.log("> SPARK_TOKEN=XXXXXXXXXXXX WIT_TOKEN=XXXXXXXXXXXX DEBUG=sparkbot* node witbot.js");
+    process.exit(1);
 }
 
 const WIT_TOKEN = process.env.WIT_TOKEN;
+const SPARK_TOKEN = process.env.SPARK_TOKEN;
 
-const actions = {
-    send(request, response) {
-        const {sessionId, context, entities} = request;
-        const {text, quickreplies} = response;
-        console.log('sending...', JSON.stringify(response));
-        const recipientId = sessions[sessionId].sparkid;
-
-        //if (recipientId) {
-        console.log(text);
-        spark.createMessage(roomid, "" + text + "", {"markdown": true}, function (err, message) {
-            if (err) {
-                console.log("WARNING: could not post message to room: " + roomId);
-                return;
-            }
-        });
-        //}
-    },
-    getForecast({context, entities}) {
-        var location = firstEntityValue(entities, 'location');
-        if (location) {
-            context.forecast = 'sunny in ' + location; // we should call a weather API here
-            delete context.missingLocation;
-        } else {
-            context.missingLocation = true;
-            delete context.forecast;
-        }
-        return context;
-    }
-};
 
 const brain = new Wit({
     accessToken: WIT_TOKEN,
@@ -51,19 +35,10 @@ const brain = new Wit({
     logger: new log.Logger(log.INFO)
 });
 
-
-if (!process.env.SPARK_TOKEN) {
-    console.log("Could not start as this bot requires a Cisco Spark API access token.");
-    console.log("Please add env variable SPARK_TOKEN on the command line");
-    console.log("Example: ");
-    console.log("> SPARK_TOKEN=XXXXXXXXXXXX DEBUG=sparkbot* node helloworld.js");
-    process.exit(1);
-}
-
 const bot = new SparkBot();
-const spark = new SparkAPIWrapper(process.env.SPARK_TOKEN);
+const spark = new SparkAPIWrapper(SPARK_TOKEN);
 var sparkid;
-var roomid;
+var roomId;
 
 //
 // WHO AM I?
@@ -79,47 +54,14 @@ spark.getMe(function(err, me) {
     }
 });
 
-
-const firstEntityValue = (entities, entity) => {
-    const val = entities && entities[entity] &&
-            Array.isArray(entities[entity]) &&
-            entities[entity].length > 0 &&
-            entities[entity][0].value
-        ;
-    if (!val) {
-        return null;
-    }
-    return typeof val === 'object' ? val.value : val;
-};
-
 const sessions = {};
-
-const findOrCreateSession = (sparkid) => {
-    let sessionId;
-    // Let's see if we already have a session for the user fbid
-    Object.keys(sessions).forEach(k => {
-        if (sessions[k].sparkid === sparkid) {
-            // Yep, got it!
-            sessionId = k;
-        }
-    });
-    if (!sessionId) {
-        // No session found for user fbid, let's create a new one
-        sessionId = new Date().toISOString();
-        sessions[sessionId] = {sparkid: sparkid, context: {}};
-    }
-    return sessionId;
-};
-
-
-
-
 const sessionId = findOrCreateSession(sparkid);
 
 bot.onMessage(function(trigger, message) {
-    roomid = message.roomId;
+    roomId = message.roomId;
     if (trigger.data.personId != sparkid) {
         console.log("new message from: " + trigger.data.personEmail + ", text: " + message.text);
+        console.log("roomId: " + roomId);
 
 // Let's forward the message to the Wit.ai Bot Engine
 // This will run all actions until our bot has nothing left to do
@@ -128,7 +70,6 @@ bot.onMessage(function(trigger, message) {
             message.text, // the user's message
             sessions[sessionId].context // the user's current session state
         ).then((context) => {
-            console.log(context);
             // Our bot did everything it has to do.
             // Now it's waiting for further messages to proceed.
             console.log('Waiting for next user messages');
