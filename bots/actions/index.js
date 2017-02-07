@@ -1,4 +1,9 @@
-const send = (request, response) => {
+const firstEntityValue = require('../utils/firstEntityValue.js');
+const sessions = require('../utils/sessions.js');
+const app = require('../witbot');
+
+const actions = {
+    send(request, response) {
         const {sessionId, context, entities} = request;
         const {text, quickreplies} = response;
         console.log('sending...', JSON.stringify(response));
@@ -6,16 +11,16 @@ const send = (request, response) => {
 
         //if (recipientId) {
         console.log(text);
-        spark.createMessage(roomid, "" + text + "", {"markdown": true}, function (err, message) {
+        app.spark.createMessage(app.room.id, "" + text + "", {"markdown": true}, function (err, message) {
             if (err) {
-                console.log("WARNING: could not post message to room: " + roomId);
+                console.log("WARNING: could not post message to room: " + room.id);
                 return;
             }
         });
         //}
-    };
+    },
+    getForecast({context, entities}) {
 
-const getForecast = ({context, entities}) => {
         var location = firstEntityValue(entities, 'location');
         if (location) {
             context.forecast = 'sunny in ' + location; // we should call a weather API here
@@ -25,6 +30,6 @@ const getForecast = ({context, entities}) => {
             delete context.forecast;
         }
         return context;
+    }
 };
-
 module.exports = actions;

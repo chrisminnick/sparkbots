@@ -10,4 +10,4 @@ const firstEntityValue = (entities, entity) => {
     return typeof val === 'object' ? val.value : val;
 };
 
-modules.export = firstEntityValue;
+module.exports = firstEntityValue;

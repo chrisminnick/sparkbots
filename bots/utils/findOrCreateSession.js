@@ -1,4 +1,4 @@
-const findOrCreateSession = (sparkid) => {
+const findOrCreateSession = (sparkid,sessions) => {
     let sessionId;
     // Let's see if we already have a session for the user fbid
     Object.keys(sessions).forEach(k => {
