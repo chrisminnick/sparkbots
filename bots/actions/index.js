@@ -8,8 +8,11 @@ const actions = {
         const {text, quickreplies} = response;
         console.log('sending...', JSON.stringify(response));
         const recipientId = sessions[sessionId].sparkid;
-
-        //if (recipientId) {
+        console.log('to roomId: ', app.room.id);
+        console.log('for sessionId ', sessionId);
+        console.log('session info: ', sessions[sessionId]);
+        console.log('for recipientId ', recipientId);
+        if (recipientId) {
         console.log(text);
         app.spark.createMessage(app.room.id, "" + text + "", {"markdown": true}, function (err, message) {
             if (err) {
@@ -17,7 +20,7 @@ const actions = {
                 return;
             }
         });
-        //}
+        }
     },
     getForecast({context, entities}) {
 
