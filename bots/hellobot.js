@@ -15,7 +15,7 @@ const spark = new SparkAPIWrapper(process.env.SPARK_TOKEN);
 var myId;
 
 //
-// WHO AM I?
+// get info about me.
 //
 spark.getMe(function(err, me) {
     if (!err) {
